@@ -17,8 +17,9 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfDocument.PageInfo
+import android.os.Build
 import android.os.Bundle
-import android.os.Environment
+import android.provider.DocumentsContract
 import android.text.format.DateUtils
 import android.util.DisplayMetrics
 import android.view.LayoutInflater
@@ -30,6 +31,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -38,7 +40,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.Calendar
@@ -52,6 +53,7 @@ class BasementActivity : AppCompatActivity() {
 
     val userConfigFile = "user_config.txt"
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -229,6 +231,7 @@ class BasementActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun generatePdf(pdf_layout: View) {
         val displaymetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displaymetrics)
@@ -257,24 +260,27 @@ class BasementActivity : AppCompatActivity() {
         paint.setColor(Color.BLUE)
         canvas.drawBitmap(bitmap, 0f, 0f, null)
         document.finishPage(page)
-        val dir = File(Environment.getExternalStorageDirectory().absolutePath + "/PDF")
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
 
-        // сохраняем записанный контент
-        val targetPdf = dir.absolutePath + "/test.pdf"
-        val filePath = File(targetPdf)
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_TITLE, "children.pdf")
+
+            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
+        }
+        startActivityForResult(intent, 1)
+
         try {
-            document.writeTo(FileOutputStream(filePath))
+            document.writeTo(FileOutputStream(intent.toUri(0)))
             Toast.makeText(
-                applicationContext, "PDf сохранён в " + filePath.absolutePath,
+                applicationContext, "PDf сохранён в ",
                 Toast.LENGTH_SHORT
             ).show()
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Что-то пошло не так: $e", Toast.LENGTH_LONG).show()
         }
+
 
         // закрываем документ
         document.close()
