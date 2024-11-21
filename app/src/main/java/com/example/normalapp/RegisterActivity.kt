@@ -1,7 +1,7 @@
 package com.example.normalapp
 
+import android.R.id
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -12,16 +12,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import java.io.File
+
 
 class RegisterActivity : AppCompatActivity() {
-    val usersFile = "users.bin"
-    val usersFileSeparator = "---"
-    val users: ArrayList<Array<String>> = ArrayList()
 
-    val userConfigFile = "user_config.txt"
-
-    @SuppressLint("MissingInflatedId", "SetTextI18n")
+    @SuppressLint("MissingInflatedId", "SetTextI18n", "Recycle")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -47,51 +42,29 @@ class RegisterActivity : AppCompatActivity() {
         val loginIntent = Intent(this, LoginActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
-        var item = Array<String>(2) {""}
-        var iter = 0
-
-        openFileInput(usersFile).bufferedReader().useLines { lines ->
-            for (line in lines) {
-                if (line == usersFileSeparator) {
-                    users.add(item)
-                    item = arrayOf("", "")
-                    iter = 0
-                } else {
-                    item[iter] = line.toString()
-                    iter += 1
-                }
-            }
-        }
+        val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
+        db.execSQL("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT, password Text)")
 
         submitButton.setOnClickListener {
 
             if (usernameText.text.toString() != "" && passwordText.text.toString() != "") {
-                if (!users.isEmpty()) {
-                    var flag = false
-                    for (user in users) {
-                        if (user[0] == usernameText.text.toString()) {
-                            flag = true
-                            break
-                        }
-                    }
+                val username = usernameText.text.toString()
+                val password = passwordText.text.toString()
 
-                    if (flag) {
-                        notification.text = "Пользователь с таким логином уже существует!"
-                        notification.setTextColor(Color.RED)
-                    } else {
-                        addUser(usernameText.text.toString(), passwordText.text.toString())
+                val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
 
-                        notification.text = "Вы успешно зарегистрировались!"
-                        notification.setTextColor(Color.BLUE)
+                //val query = db.rawQuery("SELECT * FROM users WHERE login = '" + username + "';", null)
 
-                        usernameText.setText("Login")
-                        passwordText.setText("")
-                    }
+                val query = db.query("users", null, "login = ?", selectionArgs, null, null, null)
+
+                if (query.count > 0) {
+                    notification.text = "Пользователь с таким логином уже существует!"
+                    notification.setTextColor(Color.RED)
                 } else {
-                    addUser(usernameText.text.toString(), passwordText.text.toString())
-
                     notification.text = "Вы успешно зарегистрировались!"
                     notification.setTextColor(Color.BLUE)
+
+                    db.execSQL("INSERT OR IGNORE INTO users (login, password) VALUES ('" + username + "','" + password + "');");
 
                     usernameText.setText("Login")
                     passwordText.setText("")
@@ -112,27 +85,6 @@ class RegisterActivity : AppCompatActivity() {
 
         homeButton.setOnClickListener {
             startActivity(homeIntent)
-        }
-    }
-
-    private fun addUser(username: String, password: String) {
-        users.add(arrayOf(username, password))
-
-        openFileOutput(usersFile, Context.MODE_PRIVATE).use {
-            for (user in users) {
-                it.write((user[0] + "\n").toByteArray())
-                it.write((user[1] + "\n").toByteArray())
-                it.write((usersFileSeparator + "\n").toByteArray())
-            }
-        }
-
-        openFileOutput("$username.txt", Context.MODE_PRIVATE).use {
-            it.write("0\n".toByteArray())
-        }
-
-        openFileOutput(userConfigFile, Context.MODE_PRIVATE).use {
-            it.write("1\n".toByteArray())
-            it.write(username.toByteArray())
         }
     }
 }

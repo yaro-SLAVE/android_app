@@ -15,11 +15,6 @@ import androidx.core.view.WindowInsetsCompat
 import java.io.File
 
 class LoginActivity : AppCompatActivity() {
-    val usersFile = "users.bin"
-    val usersFileSeparator = "---"
-    val users: ArrayList<Array<String>> = ArrayList()
-
-    val userConfigFile = "user_config.txt"
 
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,54 +41,37 @@ class LoginActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
-        var item = Array<String>(2) {""}
-        var iter = 0
-
-        openFileInput(usersFile).bufferedReader().useLines { lines ->
-            for (line in lines) {
-                if (line == usersFileSeparator) {
-                    users.add(item)
-                    item = arrayOf("", "")
-                    iter = 0
-                } else {
-                    item[iter] = line.toString()
-                    iter += 1
-                }
-            }
-        }
+        val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
 
         submitButton.setOnClickListener {
-            var flag = false
-
             if (usernameText.text.toString() != "" && usernameText.text.toString() != "Login" && passwordText.text.toString() != "") {
-                for (user in users) {
-                    if (user[0] == usernameText.text.toString() && user[1] == passwordText.text.toString()) {
+                var flag = false
+
+                val username = usernameText.text.toString()
+                val password = passwordText.text.toString()
+
+                val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
+
+                val query = db.query("users", null, "login = ?", selectionArgs, null, null, null)
+
+                while (query.moveToNext()) {
+                    if (query.getString(2) == password) {
                         flag = true
-                        break
                     }
+                }
+
+                if (flag) {
+                    notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
+                    notification.setTextColor(Color.BLUE)
+
+                    usernameText.setText("Login")
+                    passwordText.setText("")
+                } else {
+                    notification.text = "Вы неверно ввели логин и/или пароль"
+                    notification.setTextColor(Color.RED)
                 }
             } else {
                 notification.text = "Вы не ввели логин и/или пароль"
-                notification.setTextColor(Color.RED)
-            }
-
-            if (flag) {
-                val file = File(filesDir, userConfigFile)
-                file.delete()
-
-                openFileOutput(userConfigFile, Context.MODE_PRIVATE).use {
-                    it.write("1\n".toByteArray())
-                    it.write(usernameText.text.toString().toByteArray())
-                }
-
-                notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
-                notification.text = filesDir.toString()
-                notification.setTextColor(Color.BLUE)
-
-                usernameText.setText("Login")
-                passwordText.setText("")
-            } else {
-                notification.text = "Вы неверно ввели логин и/или пароль"
                 notification.setTextColor(Color.RED)
             }
         }

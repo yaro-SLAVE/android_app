@@ -45,13 +45,9 @@ import java.io.IOException
 import java.util.Calendar
 import java.util.Objects
 
-val separator = "---"
-var username = ""
 class BasementActivity : AppCompatActivity() {
     private val dataset: ArrayList<Array<String>> = ArrayList()
     var dateAndTime = Calendar.getInstance()
-
-    val userConfigFile = "user_config.txt"
 
     @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingInflatedId", "SetTextI18n")
@@ -69,53 +65,13 @@ class BasementActivity : AppCompatActivity() {
         val signUpButton = findViewById<Button>(R.id.signUpButton)
         val homeButton = findViewById<Button>(R.id.homeButton)
         val addChildButton = findViewById<ImageButton>(R.id.addChildButton)
-        val pdfButton = findViewById<ImageButton>(R.id.pdfButton)
 
         val loginIntent = Intent(this, LoginActivity::class.java)
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
-        openFileInput(userConfigFile).bufferedReader().useLines { lines ->
-            val args:ArrayList<String> = ArrayList()
-
-            for (line in lines) {
-                args.add(line)
-            }
-
-            if (args[0].toInt() == 1) {
-                username = args[1]
-            } else {
-                username = "Гость"
-            }
-        }
-
-        if (username != "Гость") {
-            openFileInput("$username.txt").bufferedReader().useLines { lines ->
-                val args:ArrayList<String> = ArrayList()
-
-                for (line in lines) {
-                    args.add(line)
-                }
-
-                if (args[0].toInt() > 0) {
-                    var item: Array<String> = Array(3) {""}
-                    var iter = 0
-                    for (i in 1..<args.size) {
-                        if (args[i] == separator ){
-                            dataset.add(item)
-                            iter = 0
-                            item = arrayOf("", "", "")
-                        } else {
-                            item[iter] = args[i]
-                            iter += 1
-                        }
-                    }
-                }
-            }
-        }
-
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewBasement)
-        val gridLayoutManager = GridLayoutManager(this,1,GridLayoutManager.HORIZONTAL,false)
+        val gridLayoutManager = GridLayoutManager(this, 1, GridLayoutManager.HORIZONTAL, false)
         recyclerView.layoutManager = gridLayoutManager
         recyclerView.isScrollContainer = true
 
@@ -146,9 +102,18 @@ class BasementActivity : AppCompatActivity() {
             val mainLayout = ConstraintLayout(this)
             mainLayout.id = View.generateViewId()
 
-            val nameLayout = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
-            val dateLayout = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
-            val dateButtonLayout = ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT)
+            val nameLayout = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                ConstraintLayout.LayoutParams.WRAP_CONTENT
+            )
+            val dateLayout = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                ConstraintLayout.LayoutParams.WRAP_CONTENT
+            )
+            val dateButtonLayout = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                ConstraintLayout.LayoutParams.WRAP_CONTENT
+            )
 
             nameLayout.leftToLeft = ConstraintLayout.LayoutParams.PARENT_ID
             nameLayout.topToTop = ConstraintLayout.LayoutParams.PARENT_ID
@@ -166,7 +131,11 @@ class BasementActivity : AppCompatActivity() {
                     dateAndTime.set(Calendar.YEAR, year)
                     dateAndTime.set(Calendar.MONTH, monthOfYear)
                     dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    date.text = DateUtils.formatDateTime(this, dateAndTime.timeInMillis, DateUtils.FORMAT_SHOW_YEAR)
+                    date.text = DateUtils.formatDateTime(
+                        this,
+                        dateAndTime.timeInMillis,
+                        DateUtils.FORMAT_SHOW_YEAR
+                    )
                 }
 
             fun setDate(v: View?) {
@@ -189,33 +158,37 @@ class BasementActivity : AppCompatActivity() {
 
             alert.setView(mainLayout)
 
-            alert.setPositiveButton("Добавить", DialogInterface.OnClickListener { dialog, whichButton ->
-                var age = Calendar.getInstance().get(Calendar.YEAR) - dateAndTime.get(Calendar.YEAR)
+            alert.setPositiveButton(
+                "Добавить",
+                DialogInterface.OnClickListener { dialog, whichButton ->
+                    var age =
+                        Calendar.getInstance().get(Calendar.YEAR) - dateAndTime.get(Calendar.YEAR)
 
-                if ((Calendar.getInstance().get(Calendar.MONTH) < dateAndTime.get(Calendar.MONTH))
-                    || (Calendar.getInstance().get(Calendar.MONTH) == dateAndTime.get(Calendar.MONTH)
-                            && Calendar.getInstance().get(Calendar.DAY_OF_MONTH) < dateAndTime.get(Calendar.DAY_OF_MONTH))) {
-                    age -= 1
-                }
+                    if ((Calendar.getInstance()
+                            .get(Calendar.MONTH) < dateAndTime.get(Calendar.MONTH))
+                        || (Calendar.getInstance()
+                            .get(Calendar.MONTH) == dateAndTime.get(Calendar.MONTH)
+                                && Calendar.getInstance()
+                            .get(Calendar.DAY_OF_MONTH) < dateAndTime.get(Calendar.DAY_OF_MONTH))
+                    ) {
+                        age -= 1
+                    }
 
-                dataset.add(arrayOf(name.text.toString(), age.toString(), date.text.toString()))
-                recyclerView.adapter?.notifyItemInserted(dataset.size - 1)
+                    dataset.add(arrayOf(name.text.toString(), age.toString(), date.text.toString()))
+                    recyclerView.adapter?.notifyItemInserted(dataset.size - 1)
 
-                updateFile(this@BasementActivity, dataset)
-
-                dateAndTime.set(Calendar.YEAR, Calendar.getInstance().get(Calendar.YEAR))
-                dateAndTime.set(Calendar.MONTH, Calendar.getInstance().get(Calendar.MONTH))
-                dateAndTime.set(Calendar.DAY_OF_MONTH, Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
-            })
+                    dateAndTime.set(Calendar.YEAR, Calendar.getInstance().get(Calendar.YEAR))
+                    dateAndTime.set(Calendar.MONTH, Calendar.getInstance().get(Calendar.MONTH))
+                    dateAndTime.set(
+                        Calendar.DAY_OF_MONTH,
+                        Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+                    )
+                })
 
             alert.setNegativeButton("Отмена",
                 DialogInterface.OnClickListener { dialog, whichButton -> })
 
             alert.show()
-        }
-
-        pdfButton.setOnClickListener {
-            generatePdf(recyclerView)
         }
 
         loginButton.setOnClickListener {
@@ -228,81 +201,6 @@ class BasementActivity : AppCompatActivity() {
 
         homeButton.setOnClickListener {
             startActivity(homeIntent)
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun generatePdf(pdf_layout: View) {
-        val displaymetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displaymetrics)
-        val height = displaymetrics.heightPixels.toFloat()
-        val width = displaymetrics.widthPixels.toFloat()
-        val convertHeight = height.toInt()
-        val convertWidth = width.toInt()
-
-        // создаем документ
-        val document = PdfDocument()
-        // определяем размер страницы
-        val pageInfo = PageInfo.Builder(convertWidth, convertHeight, 1).create()
-        // получаем страницу, на котором будем генерировать контент
-        val page = document.startPage(pageInfo)
-
-        // получаем холст (Canvas) страницы
-        val canvas = page.canvas
-        val paint = Paint()
-        canvas.drawPaint(paint)
-
-        // получаем контент, который нужно добавить в PDF, и загружаем его в Bitmap
-        var bitmap = loadBitmapFromView(pdf_layout, pdf_layout.getWidth(), pdf_layout.getHeight())
-        bitmap = Bitmap.createScaledBitmap(bitmap!!, convertWidth, convertHeight, true)
-
-        // рисуем содержимое и закрываем страницу
-        paint.setColor(Color.BLUE)
-        canvas.drawBitmap(bitmap, 0f, 0f, null)
-        document.finishPage(page)
-
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_TITLE, "children.pdf")
-
-            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
-        }
-        startActivityForResult(intent, 1)
-
-        try {
-            document.writeTo(FileOutputStream(intent.toUri(0)))
-            Toast.makeText(
-                applicationContext, "PDf сохранён в ",
-                Toast.LENGTH_SHORT
-            ).show()
-        } catch (e: IOException) {
-            e.printStackTrace()
-            Toast.makeText(this, "Что-то пошло не так: $e", Toast.LENGTH_LONG).show()
-        }
-
-
-        // закрываем документ
-        document.close()
-    }
-
-    fun loadBitmapFromView(v: View, width: Int, height: Int): Bitmap {
-        val b = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val c = Canvas(b)
-        v.draw(c)
-        return b
-    }
-}
-
-private fun updateFile(context: Context, dataset: ArrayList<Array<String>>) {
-    context.openFileOutput("$username.txt", Context.MODE_PRIVATE).use {
-        it.write((dataset.size.toString() + "\n").toByteArray())
-
-        for (item in dataset) {
-            it.write((item[0] + "\n").toByteArray())
-            it.write((item[1] + "\n").toByteArray())
-            it.write((item[2] + "\n").toByteArray())
-            it.write((separator + "\n").toByteArray())
         }
     }
 }
@@ -409,8 +307,6 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
 
                 dataSet[position] = arrayOf(name.text.toString(), age.toString(), date.text.toString())
                 this.notifyItemChanged(position)
-
-                updateFile(context, dataSet)
 
                 dateAndTime.set(Calendar.YEAR, Calendar.getInstance().get(Calendar.YEAR))
                 dateAndTime.set(Calendar.MONTH, Calendar.getInstance().get(Calendar.MONTH))
@@ -519,6 +415,5 @@ class SwipeToDeleteCallback internal constructor(
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         dataset.removeAt(viewHolder.adapterPosition)
         recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
-        updateFile(mContext, dataset)
     }
 }
