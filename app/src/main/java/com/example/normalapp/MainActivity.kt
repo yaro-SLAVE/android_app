@@ -11,6 +11,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
+    val userConfigFile = "user_config.txt"
+    var username = ""
+
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +33,19 @@ class MainActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val basementIntent = Intent(this, BasementActivity::class.java)
 
-        val arguments: Bundle? = intent.extras
+        openFileInput(userConfigFile).bufferedReader().useLines { lines ->
+            val args:ArrayList<String> = ArrayList()
+
+            for (line in lines) {
+                args.add(line)
+            }
+
+            if (args[0].toInt() == 1) {
+                username = args[1]
+            } else {
+                username = "Гость"
+            }
+        }
 
         loginButton.setOnClickListener {
             startActivity(loginIntent)
@@ -43,11 +58,5 @@ class MainActivity : AppCompatActivity() {
         basementButton.setOnClickListener {
             startActivity(basementIntent)
         }
-
-        val helloText = findViewById<TextView>(R.id.helloTextView)
-        helloText.text = "Привет, " + (arguments?.getString("username") ?: "гость")
-
-        val childText = findViewById<TextView>(R.id.childCountTextView)
-        childText.text = "В подвале " + (arguments?.getInt("childCount") ?: "нет") + " детей"
     }
 }

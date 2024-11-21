@@ -1,6 +1,7 @@
 package com.example.normalapp
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
@@ -11,9 +12,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import java.io.File
 
 class LoginActivity : AppCompatActivity() {
-    private var usersList: ArrayList<Array<String?>> = ArrayList()
+    val usersFile = "users.bin"
+    val usersFileSeparator = "---"
+    val users: ArrayList<Array<String>> = ArrayList()
+
+    val userConfigFile = "user_config.txt"
 
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,28 +46,27 @@ class LoginActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
-        val arguments: Bundle? = intent.extras
+        var item = Array<String>(2) {""}
+        var iter = 0
 
-        if (arguments?.getString("newUsername") != null && arguments.getString("newPassword") != null) {
-            val args = arrayOf(arguments.getString("newUsername"), arguments.getString("newPassword"))
-
-            var flag = false
-            for (user in usersList) {
-                if (user[0] == args[0]) {
-                    flag = true
+        openFileInput(usersFile).bufferedReader().useLines { lines ->
+            for (line in lines) {
+                if (line == usersFileSeparator) {
+                    users.add(item)
+                    item = arrayOf("", "")
+                    iter = 0
+                } else {
+                    item[iter] = line.toString()
+                    iter += 1
                 }
-            }
-
-            if (!flag) {
-                usersList.add(args)
             }
         }
 
         submitButton.setOnClickListener {
             var flag = false
 
-            if (usernameText.text.toString() != "" && passwordText.text.toString() != "") {
-                for (user in usersList) {
+            if (usernameText.text.toString() != "" && usernameText.text.toString() != "Login" && passwordText.text.toString() != "") {
+                for (user in users) {
                     if (user[0] == usernameText.text.toString() && user[1] == passwordText.text.toString()) {
                         flag = true
                         break
@@ -73,10 +78,17 @@ class LoginActivity : AppCompatActivity() {
             }
 
             if (flag) {
-                notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
-                notification.setTextColor(Color.BLUE)
+                val file = File(filesDir, userConfigFile)
+                file.delete()
 
-                homeIntent.putExtra("username", usernameText.text.toString())
+                openFileOutput(userConfigFile, Context.MODE_PRIVATE).use {
+                    it.write("1\n".toByteArray())
+                    it.write(usernameText.text.toString().toByteArray())
+                }
+
+                notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
+                notification.text = filesDir.toString()
+                notification.setTextColor(Color.BLUE)
 
                 usernameText.setText("Login")
                 passwordText.setText("")
