@@ -70,6 +70,9 @@ class BasementActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
+        val db =  baseContext.openOrCreateDatabase("app.db", AppCompatActivity.MODE_PRIVATE, null)
+        db.execSQL("CREATE TABLE IF NOT EXISTS children (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, birth_date TIMESTMP, age INTEGER, user_id INTEGER, FOREIGN KEY (user_id) REFERENCES users(id))");
+
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewBasement)
         val gridLayoutManager = GridLayoutManager(this, 1, GridLayoutManager.HORIZONTAL, false)
         recyclerView.layoutManager = gridLayoutManager
