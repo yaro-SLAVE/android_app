@@ -223,7 +223,9 @@ class BasementActivity : AppCompatActivity() {
         }
 
         pdfButton.setOnClickListener {
-            generatePdf(recyclerView)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                generatePdf(recyclerView)
+            }
         }
 
         loginButton.setOnClickListener {
@@ -239,6 +241,7 @@ class BasementActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun generatePdf(pdf_layout: View) {
         checkPermission()
 
@@ -302,61 +305,65 @@ class BasementActivity : AppCompatActivity() {
 
     private val REQUEST_PERMISSION = 1
 
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun checkPermission() {
-        val permissions = arrayOf(
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
-
-        val permissionsNeeded = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (permissionsNeeded.isNotEmpty()) {
-            if (permissionsNeeded.any { ActivityCompat.shouldShowRequestPermissionRationale(this, it) }) {
-                showExplanation("Permission Needed", "This permission is needed to access storage.", permissionsNeeded.first(), REQUEST_PERMISSION)
-            } else {
-                requestPermission(permissionsNeeded.first(), REQUEST_PERMISSION)
-            }
-        } else {
-            Toast.makeText(this, "Permissions already granted!", Toast.LENGTH_SHORT).show()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(
+                    Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                ), REQUEST_PERMISSION
+            )
         }
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
+        requestCode: Int, permissions: Array<String?>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         when (requestCode) {
-            REQUEST_PERMISSION -> if (grantResults.size > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            ) {
-                Toast.makeText(this, "Permission Granted!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Permission Denied!", Toast.LENGTH_SHORT).show()
+            REQUEST_PERMISSION -> {
+                if (grantResults.size <= 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    // в разрешении отказано (в первый раз, когда чекбокс "Больше не спрашивать" ещё не показывается)
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(
+                            this,
+                            Manifest.permission.MANAGE_EXTERNAL_STORAGE
+                        )
+                    ) {
+                        finish()
+                    } else {
+                        // показываем диалог, сообщающий о важности разрешения
+                        val builder = AlertDialog.Builder(this)
+                        builder.setMessage(
+                            """
+                            Вы отказались предоставлять разрешение на чтение хранилища.
+                            
+                            Это необходимо для работы приложения.
+                            
+                            Нажмите "Предоставить", чтобы предоставить приложению разрешения.
+                            """.trimIndent()
+                        ) // при согласии откроется окно настроек, в котором пользователю нужно будет вручную предоставить разрешения
+                            .setPositiveButton(
+                                "Предоставить"
+                            ) { dialog, id ->
+                                finish()
+                                val intent = Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", packageName, null)
+                                )
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                startActivity(intent)
+                            } // закрываем приложение
+                            .setNegativeButton(
+                                "Отказаться"
+                            ) { dialog, id -> finish() }
+                        builder.setCancelable(false)
+                        builder.create().show()
+                    }
+                }
             }
         }
-    }
-
-    private fun showExplanation(
-        title: String,
-        message: String,
-        permission: String,
-        permissionRequestCode: Int
-    ) {
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle(title)
-            .setMessage(message)
-            .setPositiveButton(
-                android.R.string.ok
-            ) { dialog, id -> requestPermission(permission, permissionRequestCode) }
-        builder.create().show()
-    }
-
-    private fun requestPermission(permissionName: String, permissionRequestCode: Int) {
-        ActivityCompat.requestPermissions(this, arrayOf(permissionName), permissionRequestCode)
     }
 }
 
@@ -586,42 +593,5 @@ class SwipeToDeleteCallback internal constructor(
         dataset.removeAt(viewHolder.adapterPosition)
         recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
         updateFile(mContext, dataset)
-    }
-}
-
-
-object PermissionUtils {
-    fun hasPermissions(context: Context?): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Environment.isExternalStorageManager()
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            (ContextCompat.checkSelfPermission(
-                context!!,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            )
-                    == PackageManager.PERMISSION_GRANTED)
-        } else {
-            true
-        }
-    }
-
-    fun requestPermissions(activity: Activity, requestCode: Int) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            try {
-                val intent: Intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.addCategory("android.intent.category.DEFAULT")
-                intent.setData(Uri.parse(String.format("package:%s", activity.packageName)))
-                activity.startActivityForResult(intent, requestCode)
-            } catch (e: Exception) {
-                val intent = Intent()
-                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                activity.startActivityForResult(intent, requestCode)
-            }
-        } else {
-            ActivityCompat.requestPermissions(
-                activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                requestCode
-            )
-        }
     }
 }
