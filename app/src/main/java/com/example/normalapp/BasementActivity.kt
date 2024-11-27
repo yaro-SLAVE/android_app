@@ -1,12 +1,15 @@
 package com.example.normalapp
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.app.DatePickerDialog.OnDateSetListener
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -17,9 +20,11 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.pdf.PdfDocument
 import android.graphics.pdf.PdfDocument.PageInfo
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.DocumentsContract
+import android.os.Environment
+import android.provider.Settings
 import android.text.format.DateUtils
 import android.util.DisplayMetrics
 import android.view.LayoutInflater
@@ -34,16 +39,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.Calendar
 import java.util.Objects
+
 
 val separator = "---"
 var username = ""
@@ -231,8 +239,9 @@ class BasementActivity : AppCompatActivity() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun generatePdf(pdf_layout: View) {
+        checkPermission()
+
         val displaymetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displaymetrics)
         val height = displaymetrics.heightPixels.toFloat()
@@ -260,27 +269,25 @@ class BasementActivity : AppCompatActivity() {
         paint.setColor(Color.BLUE)
         canvas.drawBitmap(bitmap, 0f, 0f, null)
         document.finishPage(page)
-
-        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE)
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_TITLE, "children.pdf")
-
-            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
+        val dir = File(Environment.getExternalStorageDirectory().absolutePath + "/PDF")
+        if (!dir.exists()) {
+            dir.mkdirs()
         }
-        startActivityForResult(intent, 1)
+
+        // сохраняем записанный контент
+        val targetPdf = dir.absolutePath + "/test.pdf"
+        val filePath = File(targetPdf)
 
         try {
-            document.writeTo(FileOutputStream(intent.toUri(0)))
+            document.writeTo(FileOutputStream(filePath))
             Toast.makeText(
-                applicationContext, "PDf сохранён в ",
+                applicationContext, "PDf сохранён в " + filePath.absolutePath,
                 Toast.LENGTH_SHORT
             ).show()
         } catch (e: IOException) {
             e.printStackTrace()
             Toast.makeText(this, "Что-то пошло не так: $e", Toast.LENGTH_LONG).show()
         }
-
 
         // закрываем документ
         document.close()
@@ -291,6 +298,65 @@ class BasementActivity : AppCompatActivity() {
         val c = Canvas(b)
         v.draw(c)
         return b
+    }
+
+    private val REQUEST_PERMISSION = 1
+
+    private fun checkPermission() {
+        val permissions = arrayOf(
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        )
+
+        val permissionsNeeded = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsNeeded.isNotEmpty()) {
+            if (permissionsNeeded.any { ActivityCompat.shouldShowRequestPermissionRationale(this, it) }) {
+                showExplanation("Permission Needed", "This permission is needed to access storage.", permissionsNeeded.first(), REQUEST_PERMISSION)
+            } else {
+                requestPermission(permissionsNeeded.first(), REQUEST_PERMISSION)
+            }
+        } else {
+            Toast.makeText(this, "Permissions already granted!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_PERMISSION -> if (grantResults.size > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            ) {
+                Toast.makeText(this, "Permission Granted!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Permission Denied!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showExplanation(
+        title: String,
+        message: String,
+        permission: String,
+        permissionRequestCode: Int
+    ) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(title)
+            .setMessage(message)
+            .setPositiveButton(
+                android.R.string.ok
+            ) { dialog, id -> requestPermission(permission, permissionRequestCode) }
+        builder.create().show()
+    }
+
+    private fun requestPermission(permissionName: String, permissionRequestCode: Int) {
+        ActivityCompat.requestPermissions(this, arrayOf(permissionName), permissionRequestCode)
     }
 }
 
@@ -520,5 +586,42 @@ class SwipeToDeleteCallback internal constructor(
         dataset.removeAt(viewHolder.adapterPosition)
         recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
         updateFile(mContext, dataset)
+    }
+}
+
+
+object PermissionUtils {
+    fun hasPermissions(context: Context?): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            (ContextCompat.checkSelfPermission(
+                context!!,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+                    == PackageManager.PERMISSION_GRANTED)
+        } else {
+            true
+        }
+    }
+
+    fun requestPermissions(activity: Activity, requestCode: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val intent: Intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.addCategory("android.intent.category.DEFAULT")
+                intent.setData(Uri.parse(String.format("package:%s", activity.packageName)))
+                activity.startActivityForResult(intent, requestCode)
+            } catch (e: Exception) {
+                val intent = Intent()
+                intent.setAction(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                activity.startActivityForResult(intent, requestCode)
+            }
+        } else {
+            ActivityCompat.requestPermissions(
+                activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                requestCode
+            )
+        }
     }
 }
