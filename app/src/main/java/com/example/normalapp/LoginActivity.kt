@@ -3,6 +3,8 @@ package com.example.normalapp
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.SharedPreferences.Editor
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
@@ -12,9 +14,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import java.io.File
+
 
 class LoginActivity : AppCompatActivity() {
+    val APP_PREFERENCES = "appSettings"
+    val APP_PREFERENCES_ID = "userId"
+    lateinit var appSettings: SharedPreferences
 
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +46,8 @@ class LoginActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
+        appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
+
         val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
 
         submitButton.setOnClickListener {
@@ -53,9 +60,11 @@ class LoginActivity : AppCompatActivity() {
                 val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
 
                 val query = db.query("users", null, "login = ?", selectionArgs, null, null, null)
+                var userId = ""
 
                 while (query.moveToNext()) {
                     if (query.getString(2) == password) {
+                        userId = query.getString(0)
                         flag = true
                     }
                 }
@@ -63,6 +72,10 @@ class LoginActivity : AppCompatActivity() {
                 if (flag) {
                     notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
                     notification.setTextColor(Color.BLUE)
+
+                    val editor: Editor = appSettings.edit()
+                    editor.putString(APP_PREFERENCES_ID, userId)
+                    editor.apply()
 
                     usernameText.setText("Login")
                     passwordText.setText("")

@@ -2,7 +2,9 @@ package com.example.normalapp
 
 import android.R.id
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
@@ -15,6 +17,9 @@ import androidx.core.view.WindowInsetsCompat
 
 
 class RegisterActivity : AppCompatActivity() {
+    val APP_PREFERENCES = "appSettings"
+    val APP_PREFERENCES_ID = "userId"
+    lateinit var appSettings: SharedPreferences
 
     @SuppressLint("MissingInflatedId", "SetTextI18n", "Recycle")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +47,8 @@ class RegisterActivity : AppCompatActivity() {
         val loginIntent = Intent(this, LoginActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
+        appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
+
         val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
         db.execSQL("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT, password Text)")
 
@@ -64,7 +71,16 @@ class RegisterActivity : AppCompatActivity() {
                     notification.text = "Вы успешно зарегистрировались!"
                     notification.setTextColor(Color.BLUE)
 
-                    db.execSQL("INSERT OR IGNORE INTO users (login, password) VALUES ('" + username + "','" + password + "');");
+                    db.execSQL("INSERT OR IGNORE INTO users (login, password) VALUES ('" + username + "','" + password + "');")
+
+                    val lastItem = db.rawQuery("SELECT * FROM users ORDER BY id DESC LIMIT 1;", null)
+                    lastItem.moveToLast()
+
+                    val userId = lastItem.getString(0)
+
+                    val editor: SharedPreferences.Editor = appSettings.edit()
+                    editor.putString(APP_PREFERENCES_ID, userId)
+                    editor.apply()
 
                     usernameText.setText("Login")
                     passwordText.setText("")

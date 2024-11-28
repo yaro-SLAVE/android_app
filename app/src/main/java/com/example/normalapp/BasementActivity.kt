@@ -7,6 +7,8 @@ import android.app.DatePickerDialog.OnDateSetListener
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import android.content.SharedPreferences
+import android.database.sqlite.SQLiteDatabase
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -45,12 +47,16 @@ import java.io.IOException
 import java.util.Calendar
 import java.util.Objects
 
+val APP_PREFERENCES = "appSettings"
+val APP_PREFERENCES_ID = "userId"
+lateinit var appSettings: SharedPreferences
+var dateAndTime = Calendar.getInstance()
+
 class BasementActivity : AppCompatActivity() {
     private val dataset: ArrayList<Array<String>> = ArrayList()
-    var dateAndTime = Calendar.getInstance()
 
     @RequiresApi(Build.VERSION_CODES.O)
-    @SuppressLint("MissingInflatedId", "SetTextI18n")
+    @SuppressLint("MissingInflatedId", "SetTextI18n", "Recycle")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -70,20 +76,33 @@ class BasementActivity : AppCompatActivity() {
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val homeIntent = Intent(this, MainActivity::class.java)
 
+        appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
+
         val db =  baseContext.openOrCreateDatabase("app.db", AppCompatActivity.MODE_PRIVATE, null)
-        db.execSQL("CREATE TABLE IF NOT EXISTS children (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, birth_date TIMESTMP, age INTEGER, user_id INTEGER, FOREIGN KEY (user_id) REFERENCES users(id))");
+        db.execSQL("CREATE TABLE IF NOT EXISTS children (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, birth_date TIMESTAMP, age INTEGER, user_id INTEGER, FOREIGN KEY (user_id) REFERENCES users(id))");
+
+        if(appSettings.contains(APP_PREFERENCES_ID)) {
+            val userID = appSettings.getString(APP_PREFERENCES_ID, "")
+            val selectionArgs = arrayOf<String>(java.lang.String.valueOf(userID))
+
+            val query = db.query("children", null, "user_id = ?", selectionArgs, null, null, null)
+
+            while (query.moveToNext()) {
+                dataset.add(arrayOf(query.getString(1), query.getString(3), query.getString(2), query.getString(0)))
+            }
+        }
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewBasement)
         val gridLayoutManager = GridLayoutManager(this, 1, GridLayoutManager.HORIZONTAL, false)
         recyclerView.layoutManager = gridLayoutManager
         recyclerView.isScrollContainer = true
 
-        val customAdapter: CustomAdapter? = CustomAdapter(dataset, this)
+        val customAdapter: CustomAdapter? = CustomAdapter(dataset, this, db)
         recyclerView.adapter = customAdapter
 
         recyclerView.adapter
 
-        val swipeToDeleteCallback = SwipeToDeleteCallback(this, dataset, recyclerView)
+        val swipeToDeleteCallback = SwipeToDeleteCallback(this, dataset, recyclerView, db)
 
         val itemTouchHelper = ItemTouchHelper(swipeToDeleteCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -177,8 +196,19 @@ class BasementActivity : AppCompatActivity() {
                         age -= 1
                     }
 
-                    dataset.add(arrayOf(name.text.toString(), age.toString(), date.text.toString()))
-                    recyclerView.adapter?.notifyItemInserted(dataset.size - 1)
+                    if(appSettings.contains(APP_PREFERENCES_ID)) {
+                        val userID = appSettings.getString(APP_PREFERENCES_ID, "")
+
+                        val lastItem = db.rawQuery("SELECT * FROM children ORDER BY id DESC LIMIT 1;", null)
+                        lastItem.moveToLast()
+
+                        val childId = lastItem.getString(0)
+
+                        db.execSQL("INSERT OR IGNORE INTO children (name, birth_date, age, user_id) VALUES ('" + name.text.toString() + "','" + date.text.toString() + "'," + age.toString() + ",'" + userID + "');")
+
+                        dataset.add(arrayOf(name.text.toString(), age.toString(), date.text.toString(), childId))
+                        recyclerView.adapter?.notifyItemInserted(dataset.size - 1)
+                    }
 
                     dateAndTime.set(Calendar.YEAR, Calendar.getInstance().get(Calendar.YEAR))
                     dateAndTime.set(Calendar.MONTH, Calendar.getInstance().get(Calendar.MONTH))
@@ -208,7 +238,7 @@ class BasementActivity : AppCompatActivity() {
     }
 }
 
-class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val context: Context) : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
+class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val context: Context, private val db: SQLiteDatabase) : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
     class CustomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val nameTextView: TextView
         val ageTextView: TextView
@@ -236,7 +266,6 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
         viewHolder.dateTextView.text = dataSet[position][2]
 
         viewHolder.editButton.setOnClickListener {
-            var dateAndTime = Calendar.getInstance()
             val alert: AlertDialog.Builder = AlertDialog.Builder(context)
 
             alert.setTitle("Изменение инфы о ребенке")
@@ -300,20 +329,37 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
             alert.setView(mainLayout)
 
             alert.setPositiveButton("Изменить", DialogInterface.OnClickListener { dialog, whichButton ->
-                var age = Calendar.getInstance().get(Calendar.YEAR) - dateAndTime.get(Calendar.YEAR)
+                var age = dataSet[position][1].toInt()
+                if (date.text.toString() != dataSet[position][2]) {
+                    age =
+                        Calendar.getInstance().get(Calendar.YEAR) - dateAndTime.get(Calendar.YEAR)
 
-                if ((Calendar.getInstance().get(Calendar.MONTH) < dateAndTime.get(Calendar.MONTH))
-                    || (Calendar.getInstance().get(Calendar.MONTH) == dateAndTime.get(Calendar.MONTH)
-                            && Calendar.getInstance().get(Calendar.DAY_OF_MONTH) < dateAndTime.get(Calendar.DAY_OF_MONTH))) {
-                    age -= 1
+                    if ((Calendar.getInstance()
+                            .get(Calendar.MONTH) < dateAndTime.get(Calendar.MONTH))
+                        || (Calendar.getInstance()
+                            .get(Calendar.MONTH) == dateAndTime.get(Calendar.MONTH)
+                                && Calendar.getInstance()
+                            .get(Calendar.DAY_OF_MONTH) < dateAndTime.get(Calendar.DAY_OF_MONTH))
+                    ) {
+                        age -= 1
+                    }
                 }
 
-                dataSet[position] = arrayOf(name.text.toString(), age.toString(), date.text.toString())
-                this.notifyItemChanged(position)
+                if(appSettings.contains(APP_PREFERENCES_ID)) {
+                    val childId = dataSet[position][3]
+
+                    db.execSQL("UPDATE children SET name = '" + name.text.toString() + "', birth_date = '" + date.text.toString() + "', age = " + age.toString() + " WHERE id = " + childId + ";")
+
+                    dataSet[position] = arrayOf(name.text.toString(), age.toString(), date.text.toString(), childId)
+                    this.notifyItemChanged(position)
+                }
 
                 dateAndTime.set(Calendar.YEAR, Calendar.getInstance().get(Calendar.YEAR))
                 dateAndTime.set(Calendar.MONTH, Calendar.getInstance().get(Calendar.MONTH))
-                dateAndTime.set(Calendar.DAY_OF_MONTH, Calendar.getInstance().get(Calendar.DAY_OF_MONTH))
+                dateAndTime.set(
+                    Calendar.DAY_OF_MONTH,
+                    Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+                )
             })
 
             alert.setNegativeButton("Отмена",
@@ -334,6 +380,7 @@ class SwipeToDeleteCallback internal constructor(
     private var mContext: Context,
     private val dataset: ArrayList<Array<String>>,
     private val recyclerView: RecyclerView,
+    private val db: SQLiteDatabase
 ) :
     ItemTouchHelper.Callback() {
     private val mClearPaint: Paint = Paint()
@@ -416,7 +463,12 @@ class SwipeToDeleteCallback internal constructor(
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        dataset.removeAt(viewHolder.adapterPosition)
-        recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
+        if(appSettings.contains(APP_PREFERENCES_ID)) {
+
+            db.execSQL("DELETE FROM children WHERE id = " + dataset[viewHolder.adapterPosition][3] +";")
+
+            dataset.removeAt(viewHolder.adapterPosition)
+            recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
+        }
     }
 }
