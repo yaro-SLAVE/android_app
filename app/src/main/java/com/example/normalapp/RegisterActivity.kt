@@ -1,6 +1,5 @@
 package com.example.normalapp
 
-import android.R.id
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -49,41 +48,18 @@ class RegisterActivity : AppCompatActivity() {
 
         appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
 
-        val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
-        db.execSQL("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT, password Text)")
-
         submitButton.setOnClickListener {
 
             if (usernameText.text.toString() != "" && passwordText.text.toString() != "") {
                 val username = usernameText.text.toString()
                 val password = passwordText.text.toString()
 
-                val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
+                val registerThread = Thread {
 
-                //val query = db.rawQuery("SELECT * FROM users WHERE login = '" + username + "';", null)
+                }
 
-                val query = db.query("users", null, "login = ?", selectionArgs, null, null, null)
+                val authThread = Thread {
 
-                if (query.count > 0) {
-                    notification.text = "Пользователь с таким логином уже существует!"
-                    notification.setTextColor(Color.RED)
-                } else {
-                    notification.text = "Вы успешно зарегистрировались!"
-                    notification.setTextColor(Color.BLUE)
-
-                    db.execSQL("INSERT OR IGNORE INTO users (login, password) VALUES ('" + username + "','" + password + "');")
-
-                    val lastItem = db.rawQuery("SELECT * FROM users ORDER BY id DESC LIMIT 1;", null)
-                    lastItem.moveToLast()
-
-                    val userId = lastItem.getString(0)
-
-                    val editor: SharedPreferences.Editor = appSettings.edit()
-                    editor.putString(APP_PREFERENCES_ID, userId)
-                    editor.apply()
-
-                    usernameText.setText("Login")
-                    passwordText.setText("")
                 }
             } else {
                 notification.text = "Вы не ввели логин и/или пароль"

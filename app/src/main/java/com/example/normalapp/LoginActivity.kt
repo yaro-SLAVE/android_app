@@ -48,8 +48,6 @@ class LoginActivity : AppCompatActivity() {
 
         appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
 
-        val db = baseContext.openOrCreateDatabase("app.db", MODE_PRIVATE, null)
-
         submitButton.setOnClickListener {
             if (usernameText.text.toString() != "" && usernameText.text.toString() != "Login" && passwordText.text.toString() != "") {
                 var flag = false
@@ -59,15 +57,7 @@ class LoginActivity : AppCompatActivity() {
 
                 val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
 
-                val query = db.query("users", null, "login = ?", selectionArgs, null, null, null)
                 var userId = ""
-
-                while (query.moveToNext()) {
-                    if (query.getString(2) == password) {
-                        userId = query.getString(0)
-                        flag = true
-                    }
-                }
 
                 if (flag) {
                     notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"

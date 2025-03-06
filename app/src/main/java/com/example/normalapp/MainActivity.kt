@@ -4,15 +4,13 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
-import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
 class MainActivity : AppCompatActivity() {
-    val userConfigFile = "user_config.txt"
-    var username = ""
+
 
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,20 +30,6 @@ class MainActivity : AppCompatActivity() {
         val loginIntent = Intent(this, LoginActivity::class.java)
         val signUpIntent = Intent(this, RegisterActivity::class.java)
         val basementIntent = Intent(this, BasementActivity::class.java)
-
-        openFileInput(userConfigFile).bufferedReader().useLines { lines ->
-            val args:ArrayList<String> = ArrayList()
-
-            for (line in lines) {
-                args.add(line)
-            }
-
-            if (args[0].toInt() == 1) {
-                username = args[1]
-            } else {
-                username = "Гость"
-            }
-        }
 
         loginButton.setOnClickListener {
             startActivity(loginIntent)

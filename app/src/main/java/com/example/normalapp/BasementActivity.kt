@@ -8,8 +8,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
-import android.database.sqlite.SQLiteDatabase
-import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -17,13 +15,9 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
-import android.graphics.pdf.PdfDocument
-import android.graphics.pdf.PdfDocument.PageInfo
 import android.os.Build
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.text.format.DateUtils
-import android.util.DisplayMetrics
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,7 +25,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -42,8 +35,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import java.io.FileOutputStream
-import java.io.IOException
 import java.util.Calendar
 import java.util.Objects
 
@@ -78,18 +69,9 @@ class BasementActivity : AppCompatActivity() {
 
         appSettings = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
 
-        val db =  baseContext.openOrCreateDatabase("app.db", AppCompatActivity.MODE_PRIVATE, null)
-        db.execSQL("CREATE TABLE IF NOT EXISTS children (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, birth_date TIMESTAMP, age INTEGER, user_id INTEGER, FOREIGN KEY (user_id) REFERENCES users(id))");
-
         if(appSettings.contains(APP_PREFERENCES_ID)) {
             val userID = appSettings.getString(APP_PREFERENCES_ID, "")
             val selectionArgs = arrayOf<String>(java.lang.String.valueOf(userID))
-
-            val query = db.query("children", null, "user_id = ?", selectionArgs, null, null, null)
-
-            while (query.moveToNext()) {
-                dataset.add(arrayOf(query.getString(1), query.getString(3), query.getString(2), query.getString(0)))
-            }
         }
 
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerViewBasement)
@@ -97,12 +79,12 @@ class BasementActivity : AppCompatActivity() {
         recyclerView.layoutManager = gridLayoutManager
         recyclerView.isScrollContainer = true
 
-        val customAdapter: CustomAdapter? = CustomAdapter(dataset, this, db)
+        val customAdapter: CustomAdapter? = CustomAdapter(dataset, this)
         recyclerView.adapter = customAdapter
 
         recyclerView.adapter
 
-        val swipeToDeleteCallback = SwipeToDeleteCallback(this, dataset, recyclerView, db)
+        val swipeToDeleteCallback = SwipeToDeleteCallback(this, dataset, recyclerView)
 
         val itemTouchHelper = ItemTouchHelper(swipeToDeleteCallback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
@@ -199,14 +181,6 @@ class BasementActivity : AppCompatActivity() {
                     if(appSettings.contains(APP_PREFERENCES_ID)) {
                         val userID = appSettings.getString(APP_PREFERENCES_ID, "")
 
-                        val lastItem = db.rawQuery("SELECT * FROM children ORDER BY id DESC LIMIT 1;", null)
-                        lastItem.moveToLast()
-
-                        val childId = lastItem.getString(0)
-
-                        db.execSQL("INSERT OR IGNORE INTO children (name, birth_date, age, user_id) VALUES ('" + name.text.toString() + "','" + date.text.toString() + "'," + age.toString() + ",'" + userID + "');")
-
-                        dataset.add(arrayOf(name.text.toString(), age.toString(), date.text.toString(), childId))
                         recyclerView.adapter?.notifyItemInserted(dataset.size - 1)
                     }
 
@@ -238,7 +212,7 @@ class BasementActivity : AppCompatActivity() {
     }
 }
 
-class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val context: Context, private val db: SQLiteDatabase) : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
+class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val context: Context) : RecyclerView.Adapter<CustomAdapter.CustomViewHolder>() {
     class CustomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val nameTextView: TextView
         val ageTextView: TextView
@@ -260,7 +234,7 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
         return CustomViewHolder(view)
     }
 
-    override fun onBindViewHolder(viewHolder: CustomViewHolder , position: Int) {
+    override fun onBindViewHolder(viewHolder: CustomViewHolder, position: Int) {
         viewHolder.nameTextView.text = dataSet[position][0]
         viewHolder.ageTextView.text = dataSet[position][1]
         viewHolder.dateTextView.text = dataSet[position][2]
@@ -348,8 +322,6 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
                 if(appSettings.contains(APP_PREFERENCES_ID)) {
                     val childId = dataSet[position][3]
 
-                    db.execSQL("UPDATE children SET name = '" + name.text.toString() + "', birth_date = '" + date.text.toString() + "', age = " + age.toString() + " WHERE id = " + childId + ";")
-
                     dataSet[position] = arrayOf(name.text.toString(), age.toString(), date.text.toString(), childId)
                     this.notifyItemChanged(position)
                 }
@@ -379,8 +351,7 @@ class CustomAdapter(private val dataSet: ArrayList<Array<String>>, private val c
 class SwipeToDeleteCallback internal constructor(
     private var mContext: Context,
     private val dataset: ArrayList<Array<String>>,
-    private val recyclerView: RecyclerView,
-    private val db: SQLiteDatabase
+    private val recyclerView: RecyclerView
 ) :
     ItemTouchHelper.Callback() {
     private val mClearPaint: Paint = Paint()
@@ -464,8 +435,6 @@ class SwipeToDeleteCallback internal constructor(
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
         if(appSettings.contains(APP_PREFERENCES_ID)) {
-
-            db.execSQL("DELETE FROM children WHERE id = " + dataset[viewHolder.adapterPosition][3] +";")
 
             dataset.removeAt(viewHolder.adapterPosition)
             recyclerView.adapter?.notifyItemRemoved(viewHolder.adapterPosition)
