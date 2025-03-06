@@ -1,4 +1,4 @@
-package com.example.normalapp.api
+package com.example.normalapp.models.api
 
 data class SampleResponse(
     val error: String,

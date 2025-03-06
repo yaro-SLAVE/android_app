@@ -3,11 +3,16 @@ package com.example.normalapp
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
+import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator.Companion.identifier
+import com.example.normalapp.coordinators.languageCoordinator.LanguageCoordinator
+import com.example.normalapp.models.constants.DebuggingIdentifiers
 
 class MainActivity : AppCompatActivity() {
 
@@ -15,6 +20,8 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setupCoordinators()
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -42,5 +49,17 @@ class MainActivity : AppCompatActivity() {
         basementButton.setOnClickListener {
             startActivity(basementIntent)
         }
+    }
+
+    private fun setupCoordinators() {
+        Log.i(
+            identifier,
+            "${DebuggingIdentifiers.actionOrEventInProgress} Setting Up Coordinators.",
+        )
+        LanguageCoordinator.shared.initialize(context = baseContext)
+        DataCoordinator.shared.initialize(
+            context = baseContext,
+            onLoad = {},
+        )
     }
 }

@@ -3,41 +3,65 @@ package com.example.normalapp.coordinators.dataCoordinator
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.preferencesDataStore
+import com.android.volley.RequestQueue
+import com.android.volley.toolbox.Volley
 import com.example.normalapp.models.constants.DebuggingIdentifiers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+
 class DataCoordinator {
     companion object {
         val shared = DataCoordinator()
         const val identifier = "[DataCoordinator]"
     }
-    // MARK: Variables
     var context: Context? = null
-    // Create a variable for each preference, along with a default value.
-    // This is to guarantee that if it can't find it it resets to a value that you can control.
-    /// Sample String
-    var sampleStringPreferenceVariable: String = ""
-    val defaultSampleStringPreferenceValue: String = ""
-    /// Sample Int
-    var sampleIntPreferenceVariable: Int = 0
-    val defaultSampleIntPreferenceVariable: Int = 0
-    /// Sample Boolean
-    var sampleBooleanPreferenceVariable:  Boolean = false
-    val defaultSampleBooleanPreferenceVariable: Boolean = false
 
-    // MARK: Data Store Variables
+    var apiRequestQueue: RequestQueue? = null
+
+    var jwt: String = ""
+    val defaultJwt: String = ""
+
+    var refreshToken: String = ""
+    val defaultRefreshToken: String = ""
+
+    var username: String = ""
+    val defaultUsername: String = ""
+
+    var firstName: String = ""
+    val defaultFirstName: String = ""
+
+    var lastName: String = ""
+    val defaultLastName: String = ""
+
+    var birthDate: String = ""
+    val defaultBirthDate: String = ""
+
+
     private val USER_PREFERENCES_NAME = "user_preferences"
     val Context.dataStore by preferencesDataStore(
         name = USER_PREFERENCES_NAME
     )
 
-    // MARK: Lifecycle
     fun initialize(context: Context, onLoad: () -> Unit) {
         Log.i(
             "${DataCoordinator.identifier}",
             "${DebuggingIdentifiers.actionOrEventInProgress} initialize  ${DebuggingIdentifiers.actionOrEventInProgress}."
         )
-        // Set Context
+
         this.context = context
-        // Callback
-        onLoad()
+        this.apiRequestQueue = Volley.newRequestQueue(context)
+
+        GlobalScope.launch(Dispatchers.Default) {
+            jwt = getJwtDataStore()
+            refreshToken = getRefreshTokenDataStore()
+            username = getUsernameDataStore()
+
+            Log.i(
+                "${DataCoordinator.identifier}",
+                "initialize  ${DebuggingIdentifiers.actionOrEventSucceded} String $jwt | String $refreshToken | String $username."
+            )
+            onLoad()
+        }
     }
 }
