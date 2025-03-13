@@ -5,7 +5,6 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.text.InputType
 import android.util.Log
 import android.view.View
@@ -23,24 +22,22 @@ import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
 import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator.Companion.identifier
 import com.example.normalapp.coordinators.languageCoordinator.LanguageCoordinator
 import com.example.normalapp.models.constants.DebuggingIdentifiers
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.FormBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
-import android.os.Handler
-
+import kotlinx.coroutines.*
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
 
 class MainActivity : AppCompatActivity() {
-    private val client = OkHttpClient()
+//    private val client = HttpC
+    private val hostServer = DataCoordinator.shared.hostServer
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        setupCoordinators()
+        setupCoordinators()
+
+        println("host server - " + hostServer)
 
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
@@ -101,20 +98,23 @@ class MainActivity : AppCompatActivity() {
             alert.setPositiveButton(
                 "Сгенерировать",
                 DialogInterface.OnClickListener { dialog, whichButton ->
-                    generateData("http://10.0.2.2:8000/api/generate_data/users/", fakersCount.text.toString())
-                    generateData("http://10.0.2.2:8000/api/generate_data/basements/", fakersCount.text.toString())
-
-//                    var mainHandler: Handler = Handler(Looper.getMainLooper())
-
-                    /*
-                    mainHandler.post(Runnable {
-                        fun run() {
-
+/*
+                    CoroutineScope(Dispatchers.Main).launch {
+                        val usersResult = withContext(Dispatchers.IO) {
+                            generateData("${hostServer}/api/generate_data/users/", fakersCount.text.toString())
                         }
-                    })
-                     */
 
-                })
+                        val basementsResult = withContext(Dispatchers.IO) {
+                            generateData("${hostServer}/api/generate_data/basements/", fakersCount.text.toString())
+                        }
+
+
+                    }
+
+ */
+
+                }
+            )
 
             alert.setNegativeButton("Отмена",
                 DialogInterface.OnClickListener { dialog, whichButton -> })
@@ -135,8 +135,9 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    /*
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun generateData(url: String, fakersCount: String) {
+    private fun generateData(url: String, fakersCount: String): Boolean {
         val body = FormBody.Builder()
             .add("fakers_count", fakersCount)
             .build()
@@ -148,26 +149,25 @@ class MainActivity : AppCompatActivity() {
             .post(body)
             .build()
 
-        var callback = client.newCall(request).enqueue(object : Callback {
-
-            override fun onFailure(call: Call, e: IOException) {
-                e.printStackTrace()
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!response.isSuccessful){
-                        throw IOException("Unexpected code $response")
-                    }
-
-                    for ((name, value) in response.headers) {
-                        println("$name: $value")
-                    }
-
-                    println(response.body!!.string())
-                }
-            }
-        })
-
+        return try {
+            val response: Response = client.newCall(request).execute()
+//            response.body?.toString()
+            response.isSuccessful
+        } catch (e: IOException) {
+            e.printStackTrace()
+            false
+        }
     }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private suspend fun generateUsersAndBasements(fakersCount: String){
+        val result = generateData("http://10.0.2.2:8000/api/generate_data/users/", fakersCount)
+        generateData("http://10.0.2.2:8000/api/generate_data/basements/", fakersCount)
+
+        println("result: $result")
+
+        delay(60 * 1000)
+    }
+
+     */
 }

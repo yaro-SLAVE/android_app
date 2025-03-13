@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 object PreferencesKeys {
+    val hostServer = stringPreferencesKey("hostServer")
     val jwt = stringPreferencesKey("jwt")
     val refreshToken = stringPreferencesKey("refreshToken")
     val username = stringPreferencesKey("username")

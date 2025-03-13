@@ -19,6 +19,9 @@ class DataCoordinator {
 
     var apiRequestQueue: RequestQueue? = null
 
+    var hostServer: String = "http://10.0.2.2:8000"
+    val defaultHostServer: String = "http://10.0.2.2:8000"
+
     var jwt: String = ""
     val defaultJwt: String = ""
 
@@ -53,6 +56,7 @@ class DataCoordinator {
         this.apiRequestQueue = Volley.newRequestQueue(context)
 
         GlobalScope.launch(Dispatchers.Default) {
+            hostServer = getHostServerDataStore()
             jwt = getJwtDataStore()
             refreshToken = getRefreshTokenDataStore()
             username = getUsernameDataStore()

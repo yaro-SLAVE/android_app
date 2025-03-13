@@ -7,6 +7,27 @@ import com.example.normalapp.models.constants.DebuggingIdentifiers
 import com.example.normalapp.models.keys.PreferencesKeys
 import kotlinx.coroutines.flow.firstOrNull
 
+suspend fun DataCoordinator.getHostServerDataStore(): String {
+    val context = this.context ?: return defaultHostServer
+    return context.dataStore.data.firstOrNull()?.get(PreferencesKeys.hostServer)
+        ?: defaultHostServer
+}
+
+suspend fun DataCoordinator.setHostServerDataStore(value: String) {
+    val context = this.context ?: return
+    Log.i(
+        identifier,
+        "${DebuggingIdentifiers.actionOrEventInProgress} setSampleDataStore  ${DebuggingIdentifiers.actionOrEventInProgress}."
+    )
+    context.dataStore.edit { preferences ->
+        preferences[PreferencesKeys.hostServer] = value
+        Log.i(
+            identifier,
+            "${DebuggingIdentifiers.actionOrEventInProgress} setSampleDataStore  ${DebuggingIdentifiers.actionOrEventSucceded} sample string : $value."
+        )
+    }
+}
+
 suspend fun DataCoordinator.getJwtDataStore(): String {
     val context = this.context ?: return defaultJwt
     return context.dataStore.data.firstOrNull()?.get(PreferencesKeys.jwt)
