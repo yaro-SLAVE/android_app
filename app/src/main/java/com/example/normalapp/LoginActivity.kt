@@ -14,12 +14,31 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.withContext
 
 
 class LoginActivity : AppCompatActivity() {
-    val APP_PREFERENCES = "appSettings"
-    val APP_PREFERENCES_ID = "userId"
-    lateinit var appSettings: SharedPreferences
+    private val hostServer = DataCoordinator.shared.hostServer
+
+    val client = HttpClient {
+        install(ContentNegotiation) {
+            json()
+        }
+    }
 
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,22 +69,19 @@ class LoginActivity : AppCompatActivity() {
 
         submitButton.setOnClickListener {
             if (usernameText.text.toString() != "" && usernameText.text.toString() != "Login" && passwordText.text.toString() != "") {
-                var flag = false
-
                 val username = usernameText.text.toString()
                 val password = passwordText.text.toString()
 
-                val selectionArgs = arrayOf<String>(java.lang.String.valueOf(username))
+                var flag = false
 
-                var userId = ""
+                val loginThread = Thread{ Runnable {
+
+//                    val loginResponse = login(username, password)
+                }}
 
                 if (flag) {
                     notification.text = usernameText.text.toString() + ", вы успешно вошли в аккаунт!"
                     notification.setTextColor(Color.BLUE)
-
-                    val editor: Editor = appSettings.edit()
-                    editor.putString(APP_PREFERENCES_ID, userId)
-                    editor.apply()
 
                     usernameText.setText("Login")
                     passwordText.setText("")
@@ -90,5 +106,17 @@ class LoginActivity : AppCompatActivity() {
         homeButton.setOnClickListener {
             startActivity(homeIntent)
         }
+    }
+
+    private suspend fun login(username: String, password: String): String {
+        val response =  client.post("${hostServer}/api/generate_data/users/"){
+            contentType(ContentType.Application.Json)
+            setBody(MultiPartFormDataContent(formData {
+                append("username", username)
+                append("password", password)
+            }))
+        }
+
+        return response.body()
     }
 }

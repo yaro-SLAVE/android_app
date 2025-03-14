@@ -22,14 +22,34 @@ import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
 import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator.Companion.identifier
 import com.example.normalapp.coordinators.languageCoordinator.LanguageCoordinator
 import com.example.normalapp.models.constants.DebuggingIdentifiers
-import kotlinx.coroutines.*
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 class MainActivity : AppCompatActivity() {
-//    private val client = HttpC
     private val hostServer = DataCoordinator.shared.hostServer
+
+    @Serializable
+    data class GenerationDataApiRequest(
+        @SerialName("fakers_count") val fakersCount: String
+    )
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @SuppressLint("MissingInflatedId", "SetTextI18n")
@@ -98,23 +118,69 @@ class MainActivity : AppCompatActivity() {
             alert.setPositiveButton(
                 "Сгенерировать",
                 DialogInterface.OnClickListener { dialog, whichButton ->
-/*
-                    CoroutineScope(Dispatchers.Main).launch {
-                        val usersResult = withContext(Dispatchers.IO) {
-                            generateData("${hostServer}/api/generate_data/users/", fakersCount.text.toString())
+                    val client = HttpClient {
+                        install(ContentNegotiation) {
+                            json()
                         }
-
-                        val basementsResult = withContext(Dispatchers.IO) {
-                            generateData("${hostServer}/api/generate_data/basements/", fakersCount.text.toString())
-                        }
-
-
                     }
 
- */
 
+                    val usersResult: Deferred<Boolean> = CoroutineScope(Dispatchers.IO).async {
+                        val result = withContext(Dispatchers.IO) {
+                            client.post("${hostServer}/api/generate_data/users/"){
+                                contentType(ContentType.Application.Json)
+                                setBody(MultiPartFormDataContent(formData {
+                                    append("fakers_count", fakersCount.text.toString())
+                                }))
+                            }
+                        }
+
+                        return@async result.status == HttpStatusCode.OK
+                    }
+
+                    val basementsResult: Deferred<Boolean> = CoroutineScope(Dispatchers.IO).async {
+                        val result = withContext(Dispatchers.IO) {
+                            client.post("${hostServer}/api/generate_data/basements/"){
+                                contentType(ContentType.Application.Json)
+                                setBody(MultiPartFormDataContent(formData {
+                                    append("fakers_count", fakersCount.text.toString())
+                                }))
+                            }
+                        }
+
+                        return@async result.status == HttpStatusCode.OK
+                    }
+
+                    runBlocking {
+                        val finalResult = usersResult.await() && basementsResult.await()
+
+                        if (finalResult) {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val childrenResult = withContext(Dispatchers.IO) {
+                                    client.post("${hostServer}/api/generate_data/children/"){
+                                        contentType(ContentType.Application.Json)
+                                        setBody(MultiPartFormDataContent(formData {
+                                            append("fakers_count", fakersCount.text.toString())
+                                        }))
+                                    }
+                                }
+
+                                if (childrenResult.status == HttpStatusCode.OK) {
+                                    val postsResult = withContext(Dispatchers.IO) {
+                                        client.post("${hostServer}/api/generate_data/posts/"){
+                                            contentType(ContentType.Application.Json)
+                                            setBody(MultiPartFormDataContent(formData {
+                                                append("fakers_count", fakersCount.text.toString())
+                                            }))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             )
+
 
             alert.setNegativeButton("Отмена",
                 DialogInterface.OnClickListener { dialog, whichButton -> })
@@ -134,40 +200,4 @@ class MainActivity : AppCompatActivity() {
             onLoad = {},
         )
     }
-
-    /*
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun generateData(url: String, fakersCount: String): Boolean {
-        val body = FormBody.Builder()
-            .add("fakers_count", fakersCount)
-            .build()
-
-        val request = Request.Builder()
-            .url(url)
-            .addHeader("Content-Type", "application/json")
-            .addHeader("Accept", "application/json")
-            .post(body)
-            .build()
-
-        return try {
-            val response: Response = client.newCall(request).execute()
-//            response.body?.toString()
-            response.isSuccessful
-        } catch (e: IOException) {
-            e.printStackTrace()
-            false
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private suspend fun generateUsersAndBasements(fakersCount: String){
-        val result = generateData("http://10.0.2.2:8000/api/generate_data/users/", fakersCount)
-        generateData("http://10.0.2.2:8000/api/generate_data/basements/", fakersCount)
-
-        println("result: $result")
-
-        delay(60 * 1000)
-    }
-
-     */
 }
