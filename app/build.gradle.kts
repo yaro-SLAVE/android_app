@@ -70,4 +70,6 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.0")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
+
+    implementation("com.github.javafaker:javafaker:1.0.2")
 }

@@ -22,39 +22,65 @@ import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
 import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator.Companion.identifier
 import com.example.normalapp.coordinators.languageCoordinator.LanguageCoordinator
 import com.example.normalapp.models.constants.DebuggingIdentifiers
+import com.github.javafaker.Faker
+import com.google.gson.Gson
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.get
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
+import io.ktor.client.statement.readBytes
+import io.ktor.client.statement.readText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentLength
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import io.ktor.util.InternalAPI
+import io.ktor.util.toByteArray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonArray
 
 class MainActivity : AppCompatActivity() {
     private val hostServer = DataCoordinator.shared.hostServer
+    private var isStartImitation: Boolean = false
+    private val client = HttpClient {
+        install(ContentNegotiation) {
+            json(Json{
+                isLenient = true
+                ignoreUnknownKeys = true
+            })
+        }
 
-    @Serializable
-    data class GenerationDataApiRequest(
-        @SerialName("fakers_count") val fakersCount: String
-    )
+        install(HttpTimeout) {
+            requestTimeoutMillis = 240000
+            connectTimeoutMillis = 20000
+        }
+    }
+
+
+    private var thread: Job = CoroutineScope(Dispatchers.IO).launch {  }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @SuppressLint("MissingInflatedId", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        thread.cancel()
+
         setupCoordinators()
 
         println("host server - " + hostServer)
@@ -71,6 +97,7 @@ class MainActivity : AppCompatActivity() {
         val signUpButton = findViewById<Button>(R.id.signUpButton)
         val basementButton = findViewById<Button>(R.id.basementButton)
         val generateButton = findViewById<ImageButton>(R.id.generateButton)
+        val imitationButton = findViewById<Button>(R.id.imitationButton)
 
         val loginIntent = Intent(this, LoginActivity::class.java)
         val signUpIntent = Intent(this, RegisterActivity::class.java)
@@ -86,6 +113,18 @@ class MainActivity : AppCompatActivity() {
 
         basementButton.setOnClickListener {
             startActivity(basementIntent)
+        }
+
+        imitationButton.setOnClickListener {
+            if (isStartImitation) {
+                imitationButton.text = "Начать имитацию"
+                thread.cancel()
+                isStartImitation = false
+            } else {
+                thread = startImitation()
+                imitationButton.text = "Прекратить имитацию"
+                isStartImitation = true
+            }
         }
 
         generateButton.setOnClickListener {
@@ -118,13 +157,6 @@ class MainActivity : AppCompatActivity() {
             alert.setPositiveButton(
                 "Сгенерировать",
                 DialogInterface.OnClickListener { dialog, whichButton ->
-                    val client = HttpClient {
-                        install(ContentNegotiation) {
-                            json()
-                        }
-                    }
-
-
                     val usersResult: Deferred<Boolean> = CoroutineScope(Dispatchers.IO).async {
                         val result = withContext(Dispatchers.IO) {
                             client.post("${hostServer}/api/generate_data/users/"){
@@ -199,5 +231,100 @@ class MainActivity : AppCompatActivity() {
             context = baseContext,
             onLoad = {},
         )
+    }
+
+    @OptIn(InternalAPI::class)
+    private fun startImitation(): Job {
+
+        var thread = CoroutineScope(Dispatchers.IO).launch {
+            val faker = Faker()
+
+            val profiles: String = client.get("${hostServer}/api/profile/").body()
+            val posts: String = client.get("${hostServer}/api/post/").body()
+            val basements: String = client.get("${hostServer}/api/basement/").body()
+
+            val profilesList = profiles.split("{", "}")
+            val postsList = posts.split("{", "}")
+            val basementsList = posts.split("{", "}")
+
+            var profilesCount = profilesList.size - 2
+            var postsCount = postsList.size - 2
+            var basementsCount = basementsList.size - 2
+
+                for (i in 1..10) {
+                    for (j in 1..10) {
+                        client.get("${hostServer}/api/post/")
+                    }
+
+                    for (j in 1..3){
+                        val user = (1..profilesCount).random()
+                        val post = (1 .. postsCount).random()
+                        val basement = (1 .. basementsCount).random()
+
+                        val profileBody = client.get("${hostServer}/api/profile/${user}/").body<String>().split(",")
+                        val postBody = client.get("${hostServer}/api/post/${post}/").body<String>().split(",")
+                        val basementBody = client.get("${hostServer}/api/basement/${basement}/").body<String>().split(",")
+
+                        if (client.get("${hostServer}/api/profile/${user}/").status == HttpStatusCode.OK) {
+                            val result = client.put("${hostServer}/api/profile/${user}/") {
+                                contentType(ContentType.Application.Json)
+                                setBody(MultiPartFormDataContent(formData {
+                                    append("user", profileBody[1].split(":")[1])
+                                    append("logo", "")
+                                    append("birth_date", "1993-10-4")
+
+                                }))
+                            }.body<String>()
+
+                            println(result)
+                        }
+
+                        if (client.get("${hostServer}/api/post/${post}/").status == HttpStatusCode.OK) {
+                            val result = client.put("${hostServer}/api/post/${post}/") {
+                                contentType(ContentType.Application.Json)
+                                setBody(MultiPartFormDataContent(formData {
+                                    append("user", postBody[1].split(":")[1])
+                                    append("title", "Измененный заголовок")
+                                    append("body", postBody[3].split(":")[1])
+                                    append("create_time", postBody[4].split("\":")[1].replace("}", "").replace("\"", ""))
+                                }))
+                            }.body<String>()
+
+                            println(result)
+                        }
+
+                        if (client.get("${hostServer}/api/basement/${basement}/").status == HttpStatusCode.OK) {
+                            val result = client.put("${hostServer}/api/basement/${basement}/") {
+                                contentType(ContentType.Application.Json)
+                                setBody(MultiPartFormDataContent(formData {
+                                    append("address", basementBody[1].split(":")[1].replace("\"", ""))
+                                    append("capacity", 30)
+                                }))
+                            }.body<String>()
+
+                            println(result)
+                        }
+
+                        var postRequest = client.post("${hostServer}/api/profile/"){
+                            contentType(ContentType.Application.Json)
+                            setBody(MultiPartFormDataContent(formData{
+                                append("username", "user${profilesCount * 11}")
+                                append("password", "qwe123")
+                                append("first_name", "Владимир")
+                                append("last_name", "Ленин")
+                                append("birth_date", "1993-10-4")
+                            }))
+                        }
+
+                        ++profilesCount
+
+                        client.delete("${hostServer}/api/profile/${(1 .. profilesCount).random()}/")
+
+                        --profilesCount
+                    }
+                }
+        }
+
+        return thread
     }
 }
