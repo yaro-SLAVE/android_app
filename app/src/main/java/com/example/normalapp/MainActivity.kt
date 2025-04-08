@@ -237,8 +237,6 @@ class MainActivity : AppCompatActivity() {
     private fun startImitation(): Job {
 
         var thread = CoroutineScope(Dispatchers.IO).launch {
-            val faker = Faker()
-
             val profiles: String = client.get("${hostServer}/api/profile/").body()
             val posts: String = client.get("${hostServer}/api/post/").body()
             val basements: String = client.get("${hostServer}/api/basement/").body()
@@ -254,6 +252,17 @@ class MainActivity : AppCompatActivity() {
                 for (i in 1..10) {
                     for (j in 1..10) {
                         client.get("${hostServer}/api/post/")
+                        client.get("${hostServer}/api/profile/")
+                        client.get("${hostServer}/api/basement/")
+                        client.get("${hostServer}/api/user_basement/")
+                        client.get("${hostServer}/api/child/")
+                        client.get("${hostServer}/api/post_photo/")
+                        client.get("${hostServer}/api/post_like/")
+                        client.get("${hostServer}/api/child_photo/")
+                        client.get("${hostServer}/api/comment/")
+                        client.get("${hostServer}/api/comment_like/")
+                        client.get("${hostServer}/api/reaction/")
+                        client.get("${hostServer}/api/post_reaction/")
                     }
 
                     for (j in 1..3){

@@ -72,4 +72,6 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.0")
 
     implementation("com.github.javafaker:javafaker:1.0.2")
+
+    implementation ("com.squareup.okhttp3:okhttp:4.10.0")
 }
