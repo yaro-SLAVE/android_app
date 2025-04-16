@@ -252,14 +252,14 @@ class MainActivity : AppCompatActivity() {
                 for (i in 1..10) {
                     for (j in 1..10) {
                         client.get("${hostServer}/api/post/")
-                        client.get("${hostServer}/api/profile/")
-                        client.get("${hostServer}/api/basement/")
+                        client.get("${hostServer}/api/profile/?last_name=пол")
+                        client.get("${hostServer}/api/basement/?capacity=5")
                         client.get("${hostServer}/api/user_basement/")
                         client.get("${hostServer}/api/child/")
                         client.get("${hostServer}/api/post_photo/")
                         client.get("${hostServer}/api/post_like/")
                         client.get("${hostServer}/api/child_photo/")
-                        client.get("${hostServer}/api/comment/")
+                        client.get("${hostServer}/api/comment/?user=6")
                         client.get("${hostServer}/api/comment_like/")
                         client.get("${hostServer}/api/reaction/")
                         client.get("${hostServer}/api/post_reaction/")
@@ -300,6 +300,14 @@ class MainActivity : AppCompatActivity() {
                             }.body<String>()
 
                             println(result)
+                        }
+
+                        client.post("${hostServer}/api/post_like/"){
+                            contentType(ContentType.Application.Json)
+                            setBody(MultiPartFormDataContent(formData{
+                                append("user", user)
+                                append("post", post)
+                            }))
                         }
 
                         if (client.get("${hostServer}/api/basement/${basement}/").status == HttpStatusCode.OK) {
