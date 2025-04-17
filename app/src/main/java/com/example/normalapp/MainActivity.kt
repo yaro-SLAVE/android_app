@@ -22,7 +22,6 @@ import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator
 import com.example.normalapp.coordinators.dataCoordinator.DataCoordinator.Companion.identifier
 import com.example.normalapp.coordinators.languageCoordinator.LanguageCoordinator
 import com.example.normalapp.models.constants.DebuggingIdentifiers
-import com.github.javafaker.Faker
 import com.google.gson.Gson
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
