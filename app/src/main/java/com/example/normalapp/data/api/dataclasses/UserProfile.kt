@@ -18,7 +18,21 @@ data class UserProfile(
     @SerialName("birth_date") val dateBirth: Date
 )
 
+@Serializable
+data class RegisterRequest(
+    val username: String,
+    val password: String,
+    @SerialName("first_name") val firstName: String,
+    @SerialName("last_name") val lastName: String,
+    @SerialName("birth_date") val birthDate: String
+)
+
 enum class UserApiError {
     USER_NOT_FOUND,
+    UNKNOWN
+}
+
+enum class RegisterApiError {
+    USER_EXISTS,
     UNKNOWN
 }

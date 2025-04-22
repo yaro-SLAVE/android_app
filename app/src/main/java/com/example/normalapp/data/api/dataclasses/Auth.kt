@@ -1,6 +1,8 @@
 package com.example.normalapp.data.api.dataclasses
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.util.Date
 
 @Serializable
 data class LoginRequest(
@@ -14,6 +16,7 @@ data class AuthRefreshResponse(
     val refresh: String
 )
 
+@Serializable
 data class RefreshRequest(
     val refresh: String
 )

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/navigation"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.normalapp.GUI.fragments.HomeFragment"
+        android:label="Главная"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.example.normalapp.GUI.fragments.LoginFragment"
+        android:label="Войти"
+        tools:layout="@layout/fragment_login" />
+
+    <fragment
+        android:id="@+id/registryFragment"
+        android:name="com.example.normalapp.GUI.fragments.RegistryFragment"
+        android:label="Зарегистрироваться"
+        tools:layout="@layout/fragment_registry" />
+
+    <fragment
+        android:id="@+id/basementFragment"
+        android:name="com.example.normalapp.GUI.fragments.BasementFragment"
+        android:label="Подвал"
+        tools:layout="@layout/fragment_basement" />
+
+</navigation>

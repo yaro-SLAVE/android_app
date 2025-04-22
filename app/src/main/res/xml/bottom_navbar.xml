@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFragment"
+        android:title="Главная" />
+    <item
+        android:id="@+id/loginFragment"
+        android:title="Войти" />
+    <item
+        android:id="@+id/registryFragment"
+        android:title="Зарегаться" />
+    <item
+        android:id="@+id/basementFragment"
+        android:title="Подвал" />
+</menu>
