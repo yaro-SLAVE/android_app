@@ -1,4 +1,12 @@
 package com.example.normalapp.gui.viewmodels
 
-class BasementViewModel {
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
+@HiltViewModel
+class BasementViewModel @Inject constructor(
+    application: Application
+): AndroidViewModel(application) {
 }
