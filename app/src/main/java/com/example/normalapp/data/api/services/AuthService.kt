@@ -60,15 +60,4 @@ class AuthService @Inject constructor(
             else -> ApiResult.Error(RefreshApiError.UNKNOWN)
         }
     }
-
-    suspend fun logout(): ApiResult<Unit, LogoutApiError> = httpExceptionWrap(LogoutApiError.UNKNOWN) {
-        val response = httpClient.get(logoutUrl())
-
-        return@httpExceptionWrap if (response.status.value in 200..299)
-            ApiResult.Success(Unit)
-        else when(response.body<ErrorResponse>().error) {
-            ErrorResponseType.REFRESH_INVALID, ErrorResponseType.REFRESH_NOT_FOUND -> ApiResult.Error(LogoutApiError.REFRESH_INVALID)
-            else -> ApiResult.Error(LogoutApiError.UNKNOWN)
-        }
-    }
 }

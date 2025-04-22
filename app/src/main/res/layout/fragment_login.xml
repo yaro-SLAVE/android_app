@@ -4,7 +4,7 @@
     <data>
         <variable
             name="handler"
-            type="com.example.normalapp.GUI.fragments.LoginFragment" />
+            type="com.example.normalapp.gui.fragments.LoginFragment" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
