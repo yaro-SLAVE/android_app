@@ -119,7 +119,8 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-
+    implementation("io.ktor:ktor-client-auth:2.3.5")
+    implementation("io.ktor:ktor-client-android:2.3.5")
 }
 
 kapt {
