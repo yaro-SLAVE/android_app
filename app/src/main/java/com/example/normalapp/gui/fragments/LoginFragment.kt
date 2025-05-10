@@ -19,11 +19,11 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class LoginFragment: Fragment() {
-    private lateinit var loginEdit: EditText
-    private lateinit var passwordEdit: EditText
-    private lateinit var loginButton: Button
+//    private lateinit var loginEdit: EditText
+//    private lateinit var passwordEdit: EditText
+//    private lateinit var loginButton: Button
 
-    //private val loginViewModel: LoginViewModel by viewModels()
+    private val loginViewModel: LoginViewModel by viewModels()
 
     private lateinit var binding: FragmentLoginBinding
 
@@ -33,22 +33,22 @@ class LoginFragment: Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         binding = FragmentLoginBinding.inflate(inflater, container, false)
+        binding.lifecycleOwner = viewLifecycleOwner
+        binding.viewModel = loginViewModel
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        loginEdit = binding.loginEditText
-        passwordEdit = binding.passwordEditText
-        loginButton = binding.logInButton
+//        loginEdit = binding.loginEditText
+//        passwordEdit = binding.passwordEditText
+//        loginButton = binding.logInButton
 
-        loginButton.setOnClickListener {
-            /*
-            CoroutineScope(Dispatchers.IO).launch {
-                loginViewModel.login(loginEdit.text.toString(), passwordEdit.text.toString())
-            }
-
-             */
-            Toast.makeText(context, "Ваше сообщение", Toast.LENGTH_SHORT).show()
-        }
+//        loginButton.setOnClickListener {
+    //            CoroutineScope(Dispatchers.IO).launch {
+//                print(loginEdit.text.toString() + "____________________")
+//                loginViewModel.login(loginEdit.text.toString(), passwordEdit.text.toString())
+//            }
+//            Toast.makeText(context, "Ваше сообщение", Toast.LENGTH_SHORT).show()
+//        }
     }
 }

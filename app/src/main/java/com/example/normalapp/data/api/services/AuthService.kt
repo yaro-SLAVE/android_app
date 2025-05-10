@@ -5,6 +5,7 @@ import com.example.normalapp.data.api.ApiResult
 import com.example.normalapp.data.api.ErrorResponse
 import com.example.normalapp.data.api.ErrorResponseType
 import com.example.normalapp.data.api.UnrecoverableErrorType
+import com.example.normalapp.data.api.dataclasses.AuthRefreshResponse
 import com.example.normalapp.data.api.dataclasses.LoginApiError
 import com.example.normalapp.data.api.dataclasses.LoginRequest
 import com.example.normalapp.data.api.dataclasses.LogoutApiError
@@ -29,7 +30,7 @@ class AuthService @Inject constructor(
     private val loginUrl: String = hostServer + "/api/auth/login/"
     private val refreshUrl: String = hostServer + "/api/auth/refresh/"
     private val logoutUrl: String = hostServer + "/api/auth/logout/"
-    suspend fun login(username: String, password: String): ApiResult<Unit, LoginApiError> = httpExceptionWrap(LoginApiError.UNKNOWN) {
+    suspend fun login(username: String, password: String): ApiResult<AuthRefreshResponse, LoginApiError> = httpExceptionWrap(LoginApiError.UNKNOWN) {
         val response = httpClient.post(loginUrl) {
             contentType(ContentType.Application.Json)
             setBody(
@@ -41,7 +42,7 @@ class AuthService @Inject constructor(
         }
 
         return@httpExceptionWrap if (response.status.value in 200..299)
-            ApiResult.Success(Unit)
+            ApiResult.Success(response.body())
         else when(response.body<ErrorResponse>().error) {
             ErrorResponseType.INCORRECT_LOGIN -> ApiResult.Error(LoginApiError.INCORRECT)
             else -> ApiResult.Error(LoginApiError.UNKNOWN)

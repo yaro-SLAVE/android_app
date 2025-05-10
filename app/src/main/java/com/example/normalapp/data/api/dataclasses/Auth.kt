@@ -1,8 +1,6 @@
 package com.example.normalapp.data.api.dataclasses
 
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.util.Date
 
 @Serializable
 data class LoginRequest(
