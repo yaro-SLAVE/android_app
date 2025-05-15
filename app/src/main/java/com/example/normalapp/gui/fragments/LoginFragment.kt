@@ -39,16 +39,5 @@ class LoginFragment: Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-//        loginEdit = binding.loginEditText
-//        passwordEdit = binding.passwordEditText
-//        loginButton = binding.logInButton
-
-//        loginButton.setOnClickListener {
-    //            CoroutineScope(Dispatchers.IO).launch {
-//                print(loginEdit.text.toString() + "____________________")
-//                loginViewModel.login(loginEdit.text.toString(), passwordEdit.text.toString())
-//            }
-//            Toast.makeText(context, "Ваше сообщение", Toast.LENGTH_SHORT).show()
-//        }
     }
 }

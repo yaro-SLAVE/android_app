@@ -9,13 +9,13 @@ data class User(
     val id: Int,
     val username: String,
     @SerialName("first_name") val firstName: String,
-    @SerialName("first_name") val lastName: String
+    @SerialName("last_name") val lastName: String
 )
 @Serializable
 data class UserProfile(
     val id: Int,
     val user: User,
-    @SerialName("birth_date") val dateBirth: Date
+    @SerialName("birth_date") val dateBirth: String
 )
 
 @Serializable

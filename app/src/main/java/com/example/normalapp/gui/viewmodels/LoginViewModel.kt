@@ -1,6 +1,7 @@
 package com.example.normalapp.gui.viewmodels
 
 import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import com.example.normalapp.data.api.ApiResult
@@ -27,9 +28,11 @@ class LoginViewModel @Inject constructor(
             CoroutineScope(Dispatchers.IO).launch {
                 when (val result = authService.login(user, pass)) {
                     is ApiResult.Error -> {
+
                     }
 
                     is ApiResult.Success -> {
+                        println(result.successValue.access)
                     }
 
                     is ApiResult.UnrecoverableError -> TODO()

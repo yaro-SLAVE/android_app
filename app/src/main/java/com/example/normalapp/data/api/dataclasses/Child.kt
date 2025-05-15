@@ -9,6 +9,6 @@ data class Child(
     val id: Int,
     @SerialName("first_name") val firstName: String,
     val gender: String,
-    @SerialName("birth_date") val birthDate: Date,
+    @SerialName("birth_date") val birthDate: String,
     val basement: Int
 )
